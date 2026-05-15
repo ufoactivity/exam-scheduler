@@ -368,4 +368,36 @@ if st.button("🚀 啟動終極全自動排班系統", type="primary", use_conta
                                 target_r = assign_start_idx + assign_map[cls] + 1
                                 # 直接從「剛剛寫完並包含手動資料」的 ws_assign 中讀取老師名字！
                                 proctor = ws_assign.cell(row=target_r, column=target_c).value
-                                if pd
+                                if pd.notna(proctor) and proctor and str(proctor).strip() != 'nan':
+                                    p_cell = ws_label.cell(row=r, column=col_proctor)
+                                    if type(p_cell).__name__ != 'MergedCell': 
+                                        p_cell.value = str(proctor).replace('None', '')
+
+                    out_label = io.BytesIO()
+                    wb_label.save(out_label)
+                    label_bytes = out_label.getvalue()
+
+            st.balloons()
+            st.session_state['results'] = {
+                'orig': to_excel_bytes(df_list_raw, None),
+                'assign': assign_bytes,
+                'pub': None,
+                'label': label_bytes
+            }
+            st.success("🎉 完美同步完畢！現在標籤已經能 100% 同步一覽表上的所有資訊，包含您手動輸入的 5/13 監考老師！")
+
+        except Exception as e:
+            st.error(f"發生錯誤: {e}")
+            st.code(traceback.format_exc())
+
+# ==========================================
+# 5. 下載區
+# ==========================================
+if st.session_state['results']:
+    st.divider()
+    res = st.session_state['results']
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.download_button("📥 1. 監考總表", res['orig'], "監考總表.xlsx", "application/vnd.ms-excel", use_container_width=True)
+    with c2: st.download_button("📥 2. 監考一覽表(保留格式版)", res['assign'], "監考一覽表_分配完成.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, type="primary")
+    with c4:
+        if res.get('label'): st.download_button("📥 4. 標籤列印(完整版)", res['label'], "標籤列印_完整版.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, type="primary")
